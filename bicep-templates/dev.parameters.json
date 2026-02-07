@@ -1,0 +1,27 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "policyName": "Windows 10/11 - Development Environment Compliance",
+    "policyDescription": "Compliance baseline for development environment devices (relaxed settings for testing)",
+    "minimumOSVersion": "10.0.19041",
+    "requireBitLocker": true,
+    "requireSecureBoot": true,
+    "requireTPM": true,
+    "minPasswordLength": 8,
+    "passwordExpirationDays": 0,
+    "requireAntivirus": true,
+    "requireAntispyware": true,
+    "requireFirewall": true,
+    "deviceThreatProtectionLevel": "Low",
+    "assignmentGroupIds": [
+      "00000000-0000-0000-0000-000000000000"
+    ]
+  },
+  "metadata": {
+    "environment": "development",
+    "lastUpdated": "2026-02-01",
+    "owner": "Taiwo Tee Awoniyi",
+    "notes": "Development environment has relaxed password requirements for testing purposes"
+  }
+}

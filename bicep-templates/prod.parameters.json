@@ -1,0 +1,35 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "policyName": "Windows 10/11 - Production Corporate Compliance",
+    "policyDescription": "Enterprise compliance baseline for all production Windows 10/11 devices - STRICT ENFORCEMENT",
+    "minimumOSVersion": "10.0.22000",
+    "requireBitLocker": true,
+    "requireSecureBoot": true,
+    "requireTPM": true,
+    "minPasswordLength": 14,
+    "passwordExpirationDays": 90,
+    "requireAntivirus": true,
+    "requireAntispyware": true,
+    "requireFirewall": true,
+    "deviceThreatProtectionLevel": "Medium",
+    "assignmentGroupIds": [
+      "00000000-0000-0000-0000-000000000000"
+    ]
+  },
+  "metadata": {
+    "environment": "production",
+    "lastUpdated": "2026-02-01",
+    "owner": "Taiwo Tee Awoniyi",
+    "approver": "IT Security Team",
+    "changeTicket": "CHG0001234",
+    "notes": "Production compliance policy requires Windows 11 (22000+) and stricter password requirements",
+    "reviewDate": "2026-05-01",
+    "complianceFrameworks": [
+      "CIS Benchmark",
+      "NIST 800-53",
+      "ISO 27001"
+    ]
+  }
+}
