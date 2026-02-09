@@ -1,0 +1,42 @@
+{
+  "$schema": "https://raw.githubusercontent.com/microsoftgraph/msgraph-metadata/master/intune-schemas/deviceManagement.deviceCompliancePolicies.json",
+  "metadata": {
+    "name": "Windows 10/11 - Corporate Baseline",
+    "description": "Enterprise compliance baseline deployed via Configuration as Code",
+    "author": "Taiwo Tee Awoniyi",
+    "version": "1.0",
+    "lastModified": "2026-02-08",
+    "environment": "all"
+  },
+  "policy": {
+    "@odata.type": "#microsoft.graph.windows10CompliancePolicy",
+    "displayName": "Windows 10/11 - Corporate Baseline (v1.0)",
+    "description": "Enterprise compliance baseline - Managed via GitHub | Author: Taiwo Tee Awoniyi",
+    "osMinimumVersion": "10.0.19041",
+    "osMaximumVersion": null,
+    "passwordRequired": true,
+    "passwordBlockSimple": true,
+    "passwordRequiredToUnlockFromIdle": true,
+    "passwordMinutesOfInactivityBeforeLock": 15,
+    "passwordExpirationDays": 90,
+    "passwordMinimumLength": 12,
+    "passwordMinimumCharacterSetCount": 3,
+    "passwordRequiredType": "deviceDefault",
+    "passwordPreviousPasswordBlockCount": 5,
+    "requireHealthyDeviceReport": false,
+    "storageRequireEncryption": false,
+    "scheduledActionsForRule": [
+      {
+        "ruleName": "PasswordRequired",
+        "scheduledActionConfigurations": [
+          {
+            "actionType": "block",
+            "gracePeriodHours": 24,
+            "notificationTemplateId": "",
+            "notificationMessageCCList": []
+          }
+        ]
+      }
+    ]
+  }
+}
