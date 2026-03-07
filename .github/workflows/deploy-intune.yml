@@ -1,0 +1,344 @@
+name: Deploy Intune Policies
+
+on:
+  push:
+    branches:
+      - dev
+      - main
+    paths:
+      - 'configs/**'
+      - 'modules/**'
+      - '.github/workflows/**'
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to deploy to'
+        required: true
+        default: 'dev'
+        type: choice
+        options:
+          - dev
+          - prod
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  # ============================================================================
+  # VALIDATION JOB - Runs on every push/PR
+  # ============================================================================
+  validate:
+    name: Validate Configurations
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Validate JSON configs
+        run: |
+          echo "🔍 Validating JSON configuration files..."
+          
+          # Find all JSON files in configs folder
+          find configs -name "*.json" -type f | while read file; do
+            echo "Validating: $file"
+            
+            # Validate JSON syntax
+            if ! jq empty "$file" 2>/dev/null; then
+              echo "❌ Invalid JSON: $file"
+              exit 1
+            fi
+            
+            # Check required fields
+            if ! jq -e '.policy."@odata.type"' "$file" >/dev/null; then
+              echo "❌ Missing @odata.type in: $file"
+              exit 1
+            fi
+            
+            if ! jq -e '.policy.displayName' "$file" >/dev/null; then
+              echo "❌ Missing displayName in: $file"
+              exit 1
+            fi
+            
+            echo "✅ Valid: $file"
+          done
+          
+          echo "✅ All configurations validated successfully!"
+      
+      - name: Check PowerShell syntax
+        shell: pwsh
+        run: |
+          Write-Host "🔍 Checking PowerShell module syntax..." -ForegroundColor Cyan
+          
+          $modulePath = "modules/IntuneAsCode/IntuneAsCode.psm1"
+          
+          if (Test-Path $modulePath) {
+            $errors = $null
+            $null = [System.Management.Automation.PSParser]::Tokenize(
+              (Get-Content $modulePath -Raw), 
+              [ref]$errors
+            )
+            
+            if ($errors.Count -gt 0) {
+              Write-Host "❌ PowerShell syntax errors found!" -ForegroundColor Red
+              $errors | ForEach-Object { Write-Host $_.Message -ForegroundColor Red }
+              exit 1
+            }
+            
+            Write-Host "✅ PowerShell module syntax valid!" -ForegroundColor Green
+          }
+      
+      - name: Security scan
+        run: |
+          echo "🔍 Scanning for exposed secrets..."
+          
+          # Check for common secret patterns (basic check)
+          if grep -r "clientSecret.*:" configs/ 2>/dev/null | grep -v "YOUR_"; then
+            echo "❌ Potential secrets found in configs!"
+            exit 1
+          fi
+          
+          echo "✅ No exposed secrets detected"
+
+  # ============================================================================
+  # DEPLOY TO DEV - Automatic on push to dev branch
+  # ============================================================================
+  deploy-dev:
+    name: Deploy to Development
+    runs-on: windows-latest
+    needs: validate
+    if: github.ref == 'refs/heads/dev' && github.event_name == 'push'
+    environment:
+      name: development
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup PowerShell modules
+        shell: pwsh
+        run: |
+          Write-Host "📦 Setting up PowerShell environment..." -ForegroundColor Cyan
+          Set-PSRepository -Name PSGallery -InstallationPolicy Trusted
+          
+          # No external modules needed - using our custom module
+          Write-Host "✅ PowerShell ready!" -ForegroundColor Green
+      
+      - name: Import IntuneAsCode module
+        shell: pwsh
+        run: |
+          Write-Host "📦 Importing IntuneAsCode module..." -ForegroundColor Cyan
+          Import-Module ./modules/IntuneAsCode/IntuneAsCode.psm1 -Force
+          
+          # Verify module loaded
+          $commands = Get-Command -Module IntuneAsCode
+          Write-Host "✅ Module loaded with $($commands.Count) functions" -ForegroundColor Green
+          $commands | ForEach-Object { Write-Host "  - $($_.Name)" -ForegroundColor Gray }
+      
+      - name: Authenticate to Microsoft Graph
+        shell: pwsh
+        env:
+          AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+          AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+        run: |
+          Import-Module ./modules/IntuneAsCode/IntuneAsCode.psm1 -Force
+          
+          Write-Host "🔐 Authenticating to Microsoft Graph..." -ForegroundColor Cyan
+          
+          $result = Connect-IntuneAsCode `
+            -ClientId $env:AZURE_CLIENT_ID `
+            -ClientSecret $env:AZURE_CLIENT_SECRET `
+            -TenantId $env:AZURE_TENANT_ID
+          
+          if ($result) {
+            Write-Host "✅ Authentication successful!" -ForegroundColor Green
+          } else {
+            Write-Host "❌ Authentication failed!" -ForegroundColor Red
+            exit 1
+          }
+      
+      - name: Deploy compliance policies
+        shell: pwsh
+        env:
+          AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+          AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+        run: |
+          Import-Module ./modules/IntuneAsCode/IntuneAsCode.psm1 -Force
+          
+          # Re-authenticate
+          Connect-IntuneAsCode `
+            -ClientId $env:AZURE_CLIENT_ID `
+            -ClientSecret $env:AZURE_CLIENT_SECRET `
+            -TenantId $env:AZURE_TENANT_ID | Out-Null
+          
+          Write-Host "🚀 Deploying compliance policies to DEV..." -ForegroundColor Cyan
+          Write-Host ""
+          
+          # Deploy all compliance policies
+          $results = Deploy-IntuneConfigFolder -FolderPath "./configs/compliance-policies"
+          
+          # Summary
+          $successful = ($results | Where-Object { $_.Success }).Count
+          $failed = ($results | Where-Object { -not $_.Success }).Count
+          
+          Write-Host ""
+          Write-Host "📊 DEPLOYMENT SUMMARY" -ForegroundColor Cyan
+          Write-Host "  Successful: $successful" -ForegroundColor Green
+          Write-Host "  Failed: $failed" -ForegroundColor $(if($failed -gt 0){'Red'}else{'Green'})
+          
+          if ($failed -gt 0) {
+            Write-Host "❌ Some deployments failed!" -ForegroundColor Red
+            exit 1
+          }
+      
+      - name: Generate deployment report
+        if: always()
+        shell: pwsh
+        run: |
+          $report = @"
+          # Development Deployment Report
+          
+          **Date:** $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')
+          **Branch:** ${{ github.ref }}
+          **Commit:** ${{ github.sha }}
+          **Status:** ${{ job.status }}
+          
+          ## Policies Deployed
+          - All compliance policies in configs/compliance-policies/
+          
+          ## Next Steps
+          - Monitor Intune portal for policy assignment
+          - Review device compliance status
+          - Test policies on dev devices
+          "@
+          
+          $report | Out-File -FilePath deployment-report-dev.md
+          Write-Host $report
+
+  # ============================================================================
+  # DEPLOY TO PROD - Requires approval, only from main branch
+  # ============================================================================
+  deploy-prod:
+    name: Deploy to Production
+    runs-on: windows-latest
+    needs: validate
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    environment:
+      name: production
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup PowerShell modules
+        shell: pwsh
+        run: |
+          Write-Host "📦 Setting up PowerShell environment..." -ForegroundColor Cyan
+          Set-PSRepository -Name PSGallery -InstallationPolicy Trusted
+          Write-Host "✅ PowerShell ready!" -ForegroundColor Green
+      
+      - name: Import IntuneAsCode module
+        shell: pwsh
+        run: |
+          Import-Module ./modules/IntuneAsCode/IntuneAsCode.psm1 -Force
+          Get-Command -Module IntuneAsCode | ForEach-Object { 
+            Write-Host "  ✓ $($_.Name)" -ForegroundColor Green 
+          }
+      
+      - name: Authenticate to Microsoft Graph
+        shell: pwsh
+        env:
+          AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+          AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+        run: |
+          Import-Module ./modules/IntuneAsCode/IntuneAsCode.psm1 -Force
+          
+          Connect-IntuneAsCode `
+            -ClientId $env:AZURE_CLIENT_ID `
+            -ClientSecret $env:AZURE_CLIENT_SECRET `
+            -TenantId $env:AZURE_TENANT_ID | Out-Null
+          
+          Write-Host "✅ Authenticated to Production tenant" -ForegroundColor Green
+      
+      - name: WhatIf analysis
+        shell: pwsh
+        env:
+          AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+          AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+        run: |
+          Import-Module ./modules/IntuneAsCode/IntuneAsCode.psm1 -Force
+          
+          Connect-IntuneAsCode `
+            -ClientId $env:AZURE_CLIENT_ID `
+            -ClientSecret $env:AZURE_CLIENT_SECRET `
+            -TenantId $env:AZURE_TENANT_ID | Out-Null
+          
+          Write-Host "🔍 Running WhatIf analysis..." -ForegroundColor Cyan
+          Deploy-IntuneConfigFolder -FolderPath "./configs/compliance-policies" -WhatIf
+      
+      - name: Deploy to production
+        shell: pwsh
+        env:
+          AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+          AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+        run: |
+          Import-Module ./modules/IntuneAsCode/IntuneAsCode.psm1 -Force
+          
+          Connect-IntuneAsCode `
+            -ClientId $env:AZURE_CLIENT_ID `
+            -ClientSecret $env:AZURE_CLIENT_SECRET `
+            -TenantId $env:AZURE_TENANT_ID | Out-Null
+          
+          Write-Host "🚀 Deploying to PRODUCTION..." -ForegroundColor Cyan
+          Write-Host "⚠️  This will affect live environment!" -ForegroundColor Yellow
+          Write-Host ""
+          
+          $results = Deploy-IntuneConfigFolder -FolderPath "./configs/compliance-policies"
+          
+          $successful = ($results | Where-Object { $_.Success }).Count
+          $failed = ($results | Where-Object { -not $_.Success }).Count
+          
+          Write-Host ""
+          Write-Host "📊 PRODUCTION DEPLOYMENT COMPLETE" -ForegroundColor Green
+          Write-Host "  Successful: $successful" -ForegroundColor Green
+          Write-Host "  Failed: $failed" -ForegroundColor $(if($failed -gt 0){'Red'}else{'Green'})
+          
+          if ($failed -gt 0) {
+            exit 1
+          }
+      
+      - name: Create deployment summary
+        if: success()
+        shell: pwsh
+        run: |
+          $summary = @"
+          # ✅ PRODUCTION DEPLOYMENT SUCCESSFUL
+          
+          **Timestamp:** $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss UTC')
+          **Deployed by:** GitHub Actions
+          **Commit:** ${{ github.sha }}
+          **Branch:** ${{ github.ref }}
+          
+          ## Deployed Policies
+          All compliance policies from configs/compliance-policies/
+          
+          ## Post-Deployment Actions
+          - [ ] Verify policies in Intune portal
+          - [ ] Monitor device compliance reports
+          - [ ] Check for any errors or warnings
+          - [ ] Update documentation if needed
+          
+          ## Rollback Procedure
+          If issues occur, revert to previous commit and re-run pipeline.
+          "@
+          
+          Write-Host $summary
