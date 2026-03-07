@@ -6,7 +6,7 @@
 .AUTHOR
     Taiwo Tee Awoniyi
 .VERSION
-    1.0
+    1.1 - Fixed error handling
 #>
 
 #Requires -Version 7.0
@@ -150,11 +150,17 @@ function Deploy-IntuneCompliancePolicy {
     catch {
         Write-Host "? Deployment failed: $($_.Exception.Message)" -ForegroundColor Red
         
-        if ($_.Exception.Response) {
-            $reader = New-Object System.IO.StreamReader($_.Exception.Response.GetResponseStream())
-            $reader.BaseStream.Position = 0
-            $responseBody = $reader.ReadToEnd()
-            Write-Host "   Response: $responseBody" -ForegroundColor Yellow
+        # FIXED: Better error handling for API responses
+        if ($_.ErrorDetails.Message) {
+            Write-Host "   API Error Details:" -ForegroundColor Yellow
+            try {
+                $errorObj = $_.ErrorDetails.Message | ConvertFrom-Json
+                Write-Host "   Error Code: $($errorObj.error.code)" -ForegroundColor Yellow
+                Write-Host "   Message: $($errorObj.error.message)" -ForegroundColor Yellow
+            }
+            catch {
+                Write-Host "   $($_.ErrorDetails.Message)" -ForegroundColor Yellow
+            }
         }
         
         return $false
@@ -224,7 +230,7 @@ function Deploy-IntuneConfigFolder {
         
         $results += @{
             Config  = $config.Name
-            Success = ($null -ne $result)
+            Success = ($null -ne $result -and $result -ne $false)
             Result  = $result
         }
         
