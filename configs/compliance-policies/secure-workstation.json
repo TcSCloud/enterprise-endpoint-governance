@@ -1,40 +1,27 @@
 {
   "metadata": {
     "name": "Windows 10/11 - Secure Workstation",
-    "description": "Enhanced security for privileged access workstations",
+    "description": "Enhanced security for PAW and admin devices",
     "author": "Taiwo Tee Awoniyi",
-    "version": "1.0",
-    "lastModified": "2026-02-09",
+    "version": "1.1",
+    "lastModified": "2026-03-07",
     "environment": "prod"
   },
   "policy": {
     "@odata.type": "#microsoft.graph.windows10CompliancePolicy",
     "displayName": "Windows 10/11 - Secure Workstation (v1.0)",
-    "description": "Enhanced compliance for PAW and admin devices - Managed via GitHub",
-    "osMinimumVersion": "10.0.22000",
+    "description": "High security compliance for privileged access - Managed via GitHub",
     "passwordRequired": true,
     "passwordBlockSimple": true,
     "passwordRequiredToUnlockFromIdle": true,
-    "passwordMinutesOfInactivityBeforeLock": 5,
-    "passwordExpirationDays": 60,
+    "passwordMinutesOfInactivityBeforeLock": 10,
+    "passwordExpirationDays": null,
     "passwordMinimumLength": 14,
     "passwordMinimumCharacterSetCount": 4,
     "passwordRequiredType": "deviceDefault",
     "passwordPreviousPasswordBlockCount": 10,
     "requireHealthyDeviceReport": false,
-    "storageRequireEncryption": false,
-    "scheduledActionsForRule": [
-      {
-        "ruleName": "PasswordRequired",
-        "scheduledActionConfigurations": [
-          {
-            "actionType": "block",
-            "gracePeriodHours": 0,
-            "notificationTemplateId": "",
-            "notificationMessageCCList": []
-          }
-        ]
-      }
-    ]
+    "osMinimumVersion": "10.0.19041",
+    "storageRequireEncryption": false
   }
 }
