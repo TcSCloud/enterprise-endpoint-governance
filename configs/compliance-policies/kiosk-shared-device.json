@@ -1,0 +1,40 @@
+{
+  "metadata": {
+    "name": "Windows 10/11 - Kiosk/Shared Device",
+    "description": "Compliance for shared/kiosk devices",
+    "author": "Taiwo Tee Awoniyi",
+    "version": "1.0",
+    "lastModified": "2026-02-09",
+    "environment": "prod"
+  },
+  "policy": {
+    "@odata.type": "#microsoft.graph.windows10CompliancePolicy",
+    "displayName": "Windows 10/11 - Kiosk/Shared Device (v1.0)",
+    "description": "Shared device compliance - Managed via GitHub",
+    "osMinimumVersion": "10.0.19041",
+    "passwordRequired": false,
+    "passwordBlockSimple": true,
+    "passwordRequiredToUnlockFromIdle": false,
+    "passwordMinutesOfInactivityBeforeLock": 5,
+    "passwordExpirationDays": 0,
+    "passwordMinimumLength": 6,
+    "passwordMinimumCharacterSetCount": 1,
+    "passwordRequiredType": "deviceDefault",
+    "passwordPreviousPasswordBlockCount": 0,
+    "requireHealthyDeviceReport": false,
+    "storageRequireEncryption": false,
+    "scheduledActionsForRule": [
+      {
+        "ruleName": "PasswordRequired",
+        "scheduledActionConfigurations": [
+          {
+            "actionType": "block",
+            "gracePeriodHours": 168,
+            "notificationTemplateId": "",
+            "notificationMessageCCList": []
+          }
+        ]
+      }
+    ]
+  }
+}

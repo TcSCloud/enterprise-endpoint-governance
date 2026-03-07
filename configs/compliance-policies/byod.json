@@ -1,0 +1,40 @@
+{
+  "metadata": {
+    "name": "Windows 10/11 - BYOD",
+    "description": "Compliance for personal devices accessing corporate resources",
+    "author": "Taiwo Tee Awoniyi",
+    "version": "1.0",
+    "lastModified": "2026-02-09",
+    "environment": "prod"
+  },
+  "policy": {
+    "@odata.type": "#microsoft.graph.windows10CompliancePolicy",
+    "displayName": "Windows 10/11 - BYOD (v1.0)",
+    "description": "BYOD compliance policy - Managed via GitHub",
+    "osMinimumVersion": "10.0.19041",
+    "passwordRequired": true,
+    "passwordBlockSimple": true,
+    "passwordRequiredToUnlockFromIdle": true,
+    "passwordMinutesOfInactivityBeforeLock": 15,
+    "passwordExpirationDays": 180,
+    "passwordMinimumLength": 10,
+    "passwordMinimumCharacterSetCount": 3,
+    "passwordRequiredType": "deviceDefault",
+    "passwordPreviousPasswordBlockCount": 3,
+    "requireHealthyDeviceReport": false,
+    "storageRequireEncryption": false,
+    "scheduledActionsForRule": [
+      {
+        "ruleName": "PasswordRequired",
+        "scheduledActionConfigurations": [
+          {
+            "actionType": "block",
+            "gracePeriodHours": 48,
+            "notificationTemplateId": "",
+            "notificationMessageCCList": []
+          }
+        ]
+      }
+    ]
+  }
+}

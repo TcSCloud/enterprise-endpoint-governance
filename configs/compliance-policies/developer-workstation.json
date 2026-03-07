@@ -1,0 +1,40 @@
+{
+  "metadata": {
+    "name": "Windows 10/11 - Developer Workstation",
+    "description": "Relaxed compliance for development environments",
+    "author": "Taiwo Tee Awoniyi",
+    "version": "1.0",
+    "lastModified": "2026-02-09",
+    "environment": "dev"
+  },
+  "policy": {
+    "@odata.type": "#microsoft.graph.windows10CompliancePolicy",
+    "displayName": "Windows 10/11 - Developer Workstation (v1.0)",
+    "description": "Development environment compliance - Managed via GitHub",
+    "osMinimumVersion": "10.0.19041",
+    "passwordRequired": true,
+    "passwordBlockSimple": false,
+    "passwordRequiredToUnlockFromIdle": false,
+    "passwordMinutesOfInactivityBeforeLock": 30,
+    "passwordExpirationDays": 0,
+    "passwordMinimumLength": 8,
+    "passwordMinimumCharacterSetCount": 1,
+    "passwordRequiredType": "deviceDefault",
+    "passwordPreviousPasswordBlockCount": 0,
+    "requireHealthyDeviceReport": false,
+    "storageRequireEncryption": false,
+    "scheduledActionsForRule": [
+      {
+        "ruleName": "PasswordRequired",
+        "scheduledActionConfigurations": [
+          {
+            "actionType": "block",
+            "gracePeriodHours": 72,
+            "notificationTemplateId": "",
+            "notificationMessageCCList": []
+          }
+        ]
+      }
+    ]
+  }
+}
