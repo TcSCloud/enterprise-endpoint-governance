@@ -3,8 +3,8 @@
     "name": "Windows 10/11 - Secure Workstation",
     "description": "Enhanced security for PAW and admin devices",
     "author": "Taiwo Tee Awoniyi",
-    "version": "1.1",
-    "lastModified": "2026-03-07",
+    "version": "1.2",
+    "lastModified": "2026-03-08",
     "environment": "prod"
   },
   "policy": {
@@ -14,12 +14,12 @@
     "passwordRequired": true,
     "passwordBlockSimple": true,
     "passwordRequiredToUnlockFromIdle": true,
-    "passwordMinutesOfInactivityBeforeLock": 10,
+    "passwordMinutesOfInactivityBeforeLock": 240,
     "passwordExpirationDays": null,
-    "passwordMinimumLength": 14,
+    "passwordMinimumLength": 4,
     "passwordMinimumCharacterSetCount": 4,
     "passwordRequiredType": "deviceDefault",
-    "passwordPreviousPasswordBlockCount": 10,
+    "passwordPreviousPasswordBlockCount": 5,
     "requireHealthyDeviceReport": false,
     "osMinimumVersion": "10.0.19041",
     "storageRequireEncryption": false
