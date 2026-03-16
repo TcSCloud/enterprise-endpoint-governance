@@ -1,0 +1,7 @@
+# Example Terraform Variables
+# Copy this file to terraform.tfvars if you want to override defaults
+# NOT REQUIRED - All values have defaults in variables.tf
+
+environment     = "dev"
+location        = "UK South"
+subscription_id = "94609cbd-96c1-4f03-aeb9-3c8d7189c717"

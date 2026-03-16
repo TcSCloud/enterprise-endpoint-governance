@@ -1,0 +1,306 @@
+# 🚀 TERRAFORM SETUP GUIDE - STEP BY STEP
+
+## 📥 STEP 1: Download and Organize Files (5 mins)
+
+1. **Download all 6 files** from above:
+   - main.tf
+   - variables.tf
+   - outputs.tf
+   - terraform.tfvars.example
+   - .gitignore
+   - README.md
+
+2. **Create folder structure:**
+   ```powershell
+   cd D:\CloudProject\IntunePack\Taiwot.com\Dev\enterprise-endpoint-governance
+   
+   # Create terraform folders
+   New-Item -ItemType Directory -Path "terraform\infrastructure" -Force
+   ```
+
+3. **Copy files to terraform\infrastructure\**
+   - Place all 6 downloaded files in: `D:\...\enterprise-endpoint-governance\terraform\infrastructure\`
+
+---
+
+## ⚙️ STEP 2: Install Terraform (5 mins)
+
+```powershell
+# Open PowerShell as Administrator
+
+# Install via Chocolatey
+choco install terraform -y
+
+# Verify installation
+terraform version
+# Should show: Terraform v1.x.x
+```
+
+---
+
+## 🔑 STEP 3: Get Your Azure Subscription ID (2 mins)
+
+You need your Azure Subscription ID. Get it via:
+
+**Option A: Azure Portal**
+1. Go to: https://portal.azure.com
+2. Search for "Subscriptions"
+3. Copy your Subscription ID
+
+**Option B: PowerShell**
+```powershell
+# Install Azure PowerShell if needed
+Install-Module -Name Az -AllowClobber -Force
+
+# Login
+Connect-AzAccount
+
+# Get Subscription ID
+Get-AzSubscription
+# Copy the "Id" field
+```
+
+**Option C: Azure CLI**
+```bash
+# Login
+az login
+
+# List subscriptions
+az account list --output table
+# Copy the "SubscriptionId"
+```
+
+---
+
+## 📝 STEP 4: Create terraform.tfvars File (3 mins)
+
+```powershell
+cd D:\CloudProject\IntunePack\Taiwot.com\Dev\enterprise-endpoint-governance\terraform\infrastructure
+
+# Copy the example file
+cp terraform.tfvars.example terraform.tfvars
+
+# Edit terraform.tfvars with your REAL values
+notepad terraform.tfvars
+```
+
+**Fill in with YOUR values:**
+
+```hcl
+environment     = "dev"
+location        = "UK South"
+subscription_id = "YOUR_AZURE_SUBSCRIPTION_ID_HERE"
+client_id       = "bdedbf78-8602-4c71-92b6-6a00b7c5006a"
+client_secret   = "YOUR_CURRENT_CLIENT_SECRET_HERE"
+tenant_id       = "4764c71a-d508-4dd2-8a72-38fd70bad969"
+```
+
+**⚠️ IMPORTANT:** 
+- Replace `YOUR_AZURE_SUBSCRIPTION_ID_HERE` with your actual subscription ID
+- Replace `YOUR_CURRENT_CLIENT_SECRET_HERE` with your current Azure service principal secret
+- The client_id and tenant_id above are YOUR existing ones
+
+**Save and close the file.**
+
+---
+
+## 🎬 STEP 5: Initialize Terraform (1 min)
+
+```powershell
+cd D:\CloudProject\IntunePack\Taiwot.com\Dev\enterprise-endpoint-governance\terraform\infrastructure
+
+# Initialize Terraform (downloads providers)
+terraform init
+```
+
+**Expected output:**
+```
+Initializing the backend...
+Initializing provider plugins...
+- Finding hashicorp/azurerm versions matching "~> 3.0"...
+- Finding hashicorp/random versions matching "~> 3.0"...
+- Installing hashicorp/azurerm v3.x.x...
+- Installing hashicorp/random v3.x.x...
+
+Terraform has been successfully initialized!
+```
+
+---
+
+## 👀 STEP 6: Preview Changes (1 min)
+
+```powershell
+# See what Terraform will create (BEFORE actually creating it)
+terraform plan
+```
+
+**Expected output:**
+```
+Terraform will perform the following actions:
+
+  # azurerm_resource_group.intune_governance will be created
+  + resource "azurerm_resource_group" "intune_governance" {
+      + name     = "rg-intune-governance-dev"
+      + location = "uksouth"
+      ...
+    }
+
+  # azurerm_log_analytics_workspace.intune_monitoring will be created
+  ...
+
+  # azurerm_storage_account.governance_storage will be created
+  ...
+
+Plan: 6 to add, 0 to change, 0 to destroy.
+```
+
+**Review the plan carefully!**
+
+---
+
+## 🚀 STEP 7: Deploy Infrastructure (2 mins)
+
+```powershell
+# Apply the configuration (create the resources)
+terraform apply
+
+# Type "yes" when prompted
+```
+
+**Expected output:**
+```
+Do you want to perform these actions?
+  Terraform will perform the actions described above.
+  Only 'yes' will be accepted to approve.
+
+  Enter a value: yes
+
+azurerm_resource_group.intune_governance: Creating...
+azurerm_resource_group.intune_governance: Creation complete after 2s
+random_string.suffix: Creating...
+random_string.suffix: Creation complete after 0s
+azurerm_log_analytics_workspace.intune_monitoring: Creating...
+azurerm_storage_account.governance_storage: Creating...
+...
+
+Apply complete! Resources: 6 added, 0 changed, 0 destroyed.
+
+Outputs:
+
+resource_group_name = "rg-intune-governance-dev"
+storage_account_name = "stintunegovabcd12"
+...
+```
+
+---
+
+## ✅ STEP 8: Verify in Azure Portal (2 mins)
+
+1. Go to: https://portal.azure.com
+2. Search for "Resource Groups"
+3. You should see: **rg-intune-governance-dev**
+4. Click on it to see all resources created:
+   - Log Analytics Workspace
+   - Storage Account (with 3 containers)
+
+**Screenshot this for your portfolio!** 📸
+
+---
+
+## 📊 STEP 9: View Outputs (1 min)
+
+```powershell
+# See all the resources that were created
+terraform output
+```
+
+**Expected output:**
+```
+environment = "dev"
+location = "UK South"
+resource_group_id = "/subscriptions/.../resourceGroups/rg-intune-governance-dev"
+resource_group_name = "rg-intune-governance-dev"
+storage_account_name = "stintunegovabcd12"
+...
+```
+
+---
+
+## 💾 STEP 10: Commit to Git (3 mins)
+
+```powershell
+cd D:\CloudProject\IntunePack\Taiwot.com\Dev\enterprise-endpoint-governance
+
+# Check status
+git status
+
+# Add Terraform files
+git add terraform/
+
+# Commit
+git commit -m "feat: Add Terraform infrastructure for Azure resources
+
+- Add Resource Group for governance platform
+- Add Log Analytics Workspace for monitoring
+- Add Storage Account for state and reports
+- Terraform configuration with variables and outputs
+- Documentation for infrastructure deployment"
+
+# Push to dev branch
+git push origin dev
+```
+
+---
+
+## 🎉 SUCCESS!
+
+**You now have:**
+- ✅ Terraform installed
+- ✅ Azure infrastructure deployed via Terraform
+- ✅ Resource Group created
+- ✅ Log Analytics Workspace for monitoring
+- ✅ Storage Account with 3 containers
+- ✅ All resources visible in Azure Portal
+- ✅ Everything committed to Git
+
+---
+
+## 🔥 NEXT STEPS:
+
+1. **Screenshot the Azure Portal** showing your resources
+2. **Update your main README** to mention Terraform
+3. **Add Terraform badge** to README
+4. **Apply for the £600/day job!**
+
+---
+
+## 🆘 TROUBLESHOOTING:
+
+### Error: "Subscription not found"
+- Check your subscription_id in terraform.tfvars
+- Verify you're logged into the correct Azure account
+
+### Error: "Authorization failed"
+- Check your client_secret is current and valid
+- Verify service principal has Contributor role on subscription
+
+### Error: "Storage account name already exists"
+- This is OK - the random suffix ensures uniqueness
+- If it fails, run `terraform apply` again
+
+### Error: "terraform: command not found"
+- Restart PowerShell after installing Terraform
+- Verify installation: `terraform version`
+
+---
+
+## 💡 REMEMBER:
+
+- ✅ `terraform.tfvars` is in `.gitignore` (NEVER commit secrets!)
+- ✅ Always run `terraform plan` before `terraform apply`
+- ✅ Keep your client_secret safe and secure
+- ✅ You can destroy resources with `terraform destroy` if needed
+
+---
+
+**Ready to deploy? Start with STEP 1!** 🚀
